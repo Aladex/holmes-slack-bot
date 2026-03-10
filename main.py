@@ -115,10 +115,37 @@ def handle_mention(event, say):
     handle_message(event, say, bot_user_id)
 
 
+def get_event_text(event):
+    """Extract text from event, including attachments (Alertmanager uses attachments)."""
+    text = event.get("text", "")
+    if not text:
+        for att in event.get("attachments", []):
+            fallback = att.get("fallback", "")
+            if fallback:
+                return fallback
+            title = att.get("title", "")
+            if title:
+                return title
+    return text
+
+
+def get_alert_full_text(event):
+    """Extract full alert text from attachments for investigation."""
+    parts = []
+    for att in event.get("attachments", []):
+        if att.get("title"):
+            parts.append(att["title"])
+        if att.get("text"):
+            parts.append(att["text"])
+    return "\n".join(parts) if parts else event.get("text", "")
+
+
 def is_alert_message(event):
     """Check if message looks like an alert from Alertmanager."""
-    text = event.get("text", "")
-    return event.get("bot_id") and any(kw in text for kw in ALERT_KEYWORDS)
+    if not event.get("bot_id"):
+        return False
+    text = get_event_text(event)
+    return any(kw in text for kw in ALERT_KEYWORDS)
 
 
 @app.event("message")
@@ -132,10 +159,12 @@ def handle_thread_reply(event, say):
     # Auto-investigate alert messages from bots (e.g. Alertmanager)
     if AUTO_INVESTIGATE and is_alert_message(event):
         # Skip RESOLVED alerts
-        text = event.get("text", "")
-        if "RESOLVED" in text:
+        alert_text = get_event_text(event)
+        if "RESOLVED" in alert_text:
             return
-        logger.info("Auto-investigating alert: %s", text[:100])
+        # Inject full alert text into event for handle_message
+        event["text"] = get_alert_full_text(event)
+        logger.info("Auto-investigating alert: %s", alert_text[:100])
         handle_message(event, say, bot_user_id)
         return
 
