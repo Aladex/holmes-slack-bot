@@ -124,6 +124,9 @@ def is_alert_message(event):
 @app.event("message")
 def handle_thread_reply(event, say):
     """Respond to thread replies and auto-investigate alerts."""
+    logger.debug("Message event: subtype=%s bot_id=%s channel=%s text=%s",
+                 event.get("subtype"), event.get("bot_id"),
+                 event.get("channel"), (event.get("text") or "")[:120])
     bot_user_id = app.client.auth_test()["user_id"]
 
     # Auto-investigate alert messages from bots (e.g. Alertmanager)
