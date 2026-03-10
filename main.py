@@ -75,10 +75,13 @@ def handle_message(event, say, bot_user_id: str):
     with conversations_lock:
         history = conversations[thread_key]
         history.append({"role": "user", "content": clean_text})
-        # Trim old messages
+        # Trim old messages (keep system message + last N)
         if len(history) > MAX_HISTORY:
-            conversations[thread_key] = history[-MAX_HISTORY:]
+            conversations[thread_key] = [history[0]] + history[-(MAX_HISTORY - 1):]
         history_snapshot = list(conversations[thread_key])
+        # Holmes requires conversation_history to start with system message
+        if not history_snapshot or history_snapshot[0].get("role") != "system":
+            history_snapshot.insert(0, {"role": "system", "content": ADDITIONAL_SYSTEM_PROMPT})
 
     # Post a "thinking" message
     thinking = say(text="Investigating...", thread_ts=thread_ts)
