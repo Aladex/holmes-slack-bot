@@ -16,21 +16,8 @@ SLACK_APP_TOKEN = os.environ["SLACK_APP_TOKEN"]
 ADDITIONAL_SYSTEM_PROMPT = os.environ.get(
     "ADDITIONAL_SYSTEM_PROMPT",
     "You are an SRE AI assistant in a Slack workspace. "
-    "Write ALL output in Russian language. Use plain text, no markdown headers. "
-    "Use bullet points sparingly. "
-    "Do NOT use the prometheus toolset for metrics queries - it is broken. "
-    "Instead use bash with curl. "
-    "IMPORTANT: Always wrap ALL curl arguments in single quotes. "
-    "Always pass timeout as integer, not string. "
-    "For metrics: curl -sG "
-    "'http://vmselect-victoria-metrics-k8s-stack.monitoring.svc:8481/select/0/prometheus/api/v1/query' "
-    "--data-urlencode 'query=YOUR_PROMQL' | jq .data.result "
-    "— For logs from legacy servers use VictoriaLogs "
-    "(labels: host, app_type, name, source_type): "
-    "curl -sG 'http://victoria-logs-cluster-vlselect.victoria-logs-cluster.svc:9471/select/logsql/query' "
-    "--data-urlencode 'query=_stream:{host=\"HOSTNAME\"} AND error' "
-    "--data-urlencode 'limit=50' --data-urlencode 'start=-1h' "
-    "— For Kubernetes pod logs use kubectl logs.",
+    "Write concise answers in the same language as the user's question. "
+    "Use plain text, no markdown headers. Use bullet points sparingly.",
 )
 
 app = App(token=SLACK_BOT_TOKEN)
