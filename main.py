@@ -20,6 +20,9 @@ ADDITIONAL_SYSTEM_PROMPT = os.environ.get(
     "Use plain text, no markdown headers. Use bullet points sparingly.",
 )
 
+AUTO_INVESTIGATE = os.environ.get("AUTO_INVESTIGATE", "false").lower() == "true"
+ALERT_KEYWORDS = ["FIRING", "RESOLVED"]
+
 app = App(token=SLACK_BOT_TOKEN)
 
 # Per-thread conversation history: {(channel, thread_ts): [messages]}
@@ -112,10 +115,28 @@ def handle_mention(event, say):
     handle_message(event, say, bot_user_id)
 
 
+def is_alert_message(event):
+    """Check if message looks like an alert from Alertmanager."""
+    text = event.get("text", "")
+    return event.get("bot_id") and any(kw in text for kw in ALERT_KEYWORDS)
+
+
 @app.event("message")
 def handle_thread_reply(event, say):
-    """Respond to messages in threads where bot is already participating."""
-    # Skip bot's own messages
+    """Respond to thread replies and auto-investigate alerts."""
+    bot_user_id = app.client.auth_test()["user_id"]
+
+    # Auto-investigate alert messages from bots (e.g. Alertmanager)
+    if AUTO_INVESTIGATE and is_alert_message(event):
+        # Skip RESOLVED alerts
+        text = event.get("text", "")
+        if "RESOLVED" in text:
+            return
+        logger.info("Auto-investigating alert: %s", text[:100])
+        handle_message(event, say, bot_user_id)
+        return
+
+    # Skip bot messages for normal flow
     if event.get("bot_id") or event.get("subtype"):
         return
 
@@ -132,7 +153,6 @@ def handle_thread_reply(event, say):
         if thread_key not in conversations:
             return
 
-    bot_user_id = app.client.auth_test()["user_id"]
     handle_message(event, say, bot_user_id)
 
 
