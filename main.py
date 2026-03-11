@@ -11,6 +11,7 @@ logging.basicConfig(level=os.environ.get("LOG_LEVEL", "INFO"))
 logger = logging.getLogger("holmes-slack-bot")
 
 HOLMES_URL = os.environ.get("HOLMES_URL", "http://holmes-holmes.monitoring.svc.cluster.local")
+HOLMES_TIMEOUT = int(os.environ.get("HOLMES_TIMEOUT", "300"))
 SLACK_BOT_TOKEN = os.environ["SLACK_BOT_TOKEN"]
 SLACK_APP_TOKEN = os.environ["SLACK_APP_TOKEN"]
 ADDITIONAL_SYSTEM_PROMPT = os.environ.get(
@@ -45,7 +46,7 @@ def call_holmes(ask: str, conversation_history: list) -> str:
         resp = requests.post(
             f"{HOLMES_URL}/api/chat",
             json=payload,
-            timeout=300,
+            timeout=HOLMES_TIMEOUT,
         )
         resp.raise_for_status()
         data = resp.json()
